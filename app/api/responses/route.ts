@@ -3,6 +3,18 @@ import { GROUP_TABS, getSheetRows } from "@/lib/googleSheets";
 import { normalizeResponses } from "@/lib/normalizeResponses";
 import type { GroupedResponse } from "@/lib/groupResponses";
 
+interface APIError {
+  message?: string;
+  code?: number;
+  response?: {
+    data?: {
+      error?: {
+        message?: string;
+      };
+    };
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -57,12 +69,13 @@ export async function GET(request: NextRequest) {
       groupedResponses,
       updatedAt: new Date().toISOString(),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API error:", error);
 
+    const err = error as APIError; // Use the defined interface
     const rawMessage =
-      error?.response?.data?.error?.message ||
-      error?.message ||
+      err?.response?.data?.error?.message ||
+      err?.message ||
       "Failed to fetch responses";
 
     let message = rawMessage;
@@ -74,7 +87,7 @@ export async function GET(request: NextRequest) {
     ) {
       message =
         "Google Sheets API is disabled for the service account project. Enable the Google Sheets API in Google Cloud Console, wait a few minutes, then try again.";
-    } else if (error?.code === 403) {
+    } else if (err?.code === 403) { // Use err.code directly
       message =
         "Google Sheets access denied. Check that the spreadsheet is shared with the service account email and that the correct Google Cloud APIs are enabled.";
     }

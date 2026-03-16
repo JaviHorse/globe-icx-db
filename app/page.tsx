@@ -121,8 +121,8 @@ export default function Home() {
     setPage(1);
   }, [selectedGroup]);
 
-  const groupedResponses = data?.groupedResponses ?? {};
-  const groups = data?.groups ?? [];
+  const groupedResponses = useMemo(() => data?.groupedResponses ?? {}, [data]);
+  const groups = useMemo(() => data?.groups ?? [], [data]);
 
   const allRows = useMemo(() => {
     if (!data?.success) return [];

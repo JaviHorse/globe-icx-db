@@ -139,13 +139,20 @@ export async function getSheetRows(tabName: string): Promise<SheetRowsResult> {
       headers,
       rows,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as {
+      message?: string;
+      code?: number;
+      status?: number;
+      response?: { data?: unknown };
+      errors?: unknown[]
+    };
     console.error("Google Sheets error for tab:", tabName);
-    console.error("message:", error?.message);
-    console.error("code:", error?.code);
-    console.error("status:", error?.status);
-    console.error("response data:", JSON.stringify(error?.response?.data, null, 2));
-    console.error("errors:", JSON.stringify(error?.errors, null, 2));
+    console.error("message:", err?.message);
+    console.error("code:", err?.code);
+    console.error("status:", err?.status);
+    console.error("response data:", JSON.stringify(err?.response?.data, null, 2));
+    console.error("errors:", JSON.stringify(err?.errors, null, 2));
     throw error;
   }
 }
