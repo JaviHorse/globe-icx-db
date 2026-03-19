@@ -1,4 +1,5 @@
 import type { SheetRowsResult } from "@/lib/googleSheets";
+import { stripHeaderSuffix } from "@/lib/googleSheets";
 import type { ResponseRow } from "@/lib/groupResponses";
 
 export type NormalizeResult = {
@@ -7,19 +8,21 @@ export type NormalizeResult = {
 };
 
 function cleanQuestionHeader(header: string) {
-  return header.replace(/^\[|\]$/g, "").trim();
+  return stripHeaderSuffix(header).replace(/^\[|\]$/g, "").trim();
 }
 
 function findQuestionHeader(headers: string[]) {
   return headers.find((header) => {
-    const normalized = header.toLowerCase();
+    const normalized = stripHeaderSuffix(header).toLowerCase();
     return normalized.includes("overall") && normalized.includes("collaboration");
   });
 }
 
 function findHeaderIgnoreCase(headers: string[], target: string) {
   const normalizedTarget = target.trim().toLowerCase();
-  return headers.find((header) => header.trim().toLowerCase() === normalizedTarget);
+  return headers.find(
+    (header) => stripHeaderSuffix(header).trim().toLowerCase() === normalizedTarget
+  );
 }
 
 export function normalizeResponses(

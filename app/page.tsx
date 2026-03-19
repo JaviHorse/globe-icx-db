@@ -29,7 +29,7 @@ type ApiResponse = {
 const ITEMS_PER_PAGE = 20;
 
 function formatHeader(header: string) {
-  return header.replace(/\s+/g, " ").trim();
+  return header.replace(/__\d+$/, "").replace(/\s+/g, " ").trim();
 }
 
 export default function Home() {

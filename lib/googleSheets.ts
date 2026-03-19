@@ -1,34 +1,29 @@
 import { google } from "googleapis";
+import { GROUP_TABS, type GroupTabName } from "@/lib/groups";
 
-export const GROUP_TABS = [
-  "AIG",
-  "AIG&ISDPSharedServices",
-  "B2B",
-  "B2C",
-  "BB",
-  "CMB",
-  "CLSG",
-  "EDS",
-  "F&A",
-  "FVT",
-  "HR",
-  "IA",
-  "ISDP",
-  "Marketing",
-  "PXG",
-  "CXC",
-  "ISG",
-  "NTG",
-  "OSMCX",
-  "SCC",
-] as const;
-
-export type GroupTabName = (typeof GROUP_TABS)[number];
+export { GROUP_TABS };
+export type { GroupTabName };
 
 export type SheetRowsResult = {
   headers: string[];
   rows: Record<string, string>[];
 };
+
+export function stripHeaderSuffix(header: string) {
+  return header.replace(/__\d+$/, "").trim();
+}
+
+function makeHeadersUnique(rawHeaders: string[]) {
+  const counts = new Map<string, number>();
+
+  return rawHeaders.map((headerRaw) => {
+    const header = String(headerRaw ?? "").trim();
+    const count = (counts.get(header) ?? 0) + 1;
+    counts.set(header, count);
+
+    return count === 1 ? header : `${header}__${count}`;
+  });
+}
 
 function getPrivateKey() {
   const directKey = process.env.GOOGLE_PRIVATE_KEY;
@@ -123,7 +118,8 @@ export async function getSheetRows(tabName: string): Promise<SheetRowsResult> {
       };
     }
 
-    const headers = (values[0] || []).map((value) => String(value).trim());
+    const rawHeaders = (values[0] || []).map((value) => String(value).trim());
+    const headers = makeHeadersUnique(rawHeaders);
 
     const rows = values.slice(1).map((row) => {
       const obj: Record<string, string> = {};
@@ -145,8 +141,9 @@ export async function getSheetRows(tabName: string): Promise<SheetRowsResult> {
       code?: number;
       status?: number;
       response?: { data?: unknown };
-      errors?: unknown[]
+      errors?: unknown[];
     };
+
     console.error("Google Sheets error for tab:", tabName);
     console.error("message:", err?.message);
     console.error("code:", err?.code);
