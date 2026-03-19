@@ -37,6 +37,7 @@ export default function Home() {
   const [selectedGroup, setSelectedGroup] = useState("All Groups");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -72,7 +73,6 @@ export default function Home() {
   const startDragging = (e: React.MouseEvent | React.TouchEvent) => {
     if (!scrollRef.current) return;
 
-    // Support both mouse and touch
     const clientX = "touches" in e ? e.touches[0].pageX : e.pageX;
 
     isDraggingRef.current = true;
@@ -83,8 +83,6 @@ export default function Home() {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDraggingRef.current || !scrollRef.current) return;
-    // Don't preventDefault here to allow vertical scrolling if needed,
-    // though for horizontal "swipe" we usually want to take control.
     const x = e.touches[0].pageX - scrollRef.current.offsetLeft;
     const walk = (x - startXRef.current) * 2;
     scrollRef.current.scrollLeft = scrollLeftRef.current - walk;
@@ -108,6 +106,34 @@ export default function Home() {
       });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function syncData() {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/sync", {
+        method: "POST",
+      });
+
+      const json = await res.json();
+
+      if (!json.success) {
+        setData({
+          success: false,
+          error: json.error || "Failed to sync responses.",
+        });
+        return;
+      }
+
+      await fetchData(selectedGroup);
+    } catch {
+      setData({
+        success: false,
+        error: "Failed to sync responses.",
+      });
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -167,7 +193,8 @@ export default function Home() {
     return allRows.slice(start, start + ITEMS_PER_PAGE);
   }, [allRows, page]);
 
-  const visibleColumnCount = 4 + (selectedGroup === "All Groups" ? 0 : dynamicColumns.length);
+  const visibleColumnCount =
+    4 + (selectedGroup === "All Groups" ? 0 : dynamicColumns.length);
 
   return (
     <main className="min-h-screen bg-[#f2f4f8] text-[#1f2e8d]">
@@ -200,6 +227,13 @@ export default function Home() {
             className="rounded-xl bg-[#1f2e8d] text-white px-6 py-3 font-medium"
           >
             {loading ? "Refreshing..." : "Refresh"}
+          </button>
+
+          <button
+            onClick={syncData}
+            className="rounded-xl border border-[#1f2e8d] px-6 py-3 font-medium bg-white"
+          >
+            {syncing ? "Syncing..." : "Sync to DB"}
           </button>
 
           <a
@@ -275,7 +309,10 @@ export default function Home() {
 
                 {paginatedRows.length === 0 && (
                   <tr>
-                    <td colSpan={visibleColumnCount} className="px-6 py-8 text-center text-[#6d78a8]">
+                    <td
+                      colSpan={visibleColumnCount}
+                      className="px-6 py-8 text-center text-[#6d78a8]"
+                    >
                       No responses found for this group.
                     </td>
                   </tr>
